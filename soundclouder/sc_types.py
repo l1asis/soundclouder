@@ -42,13 +42,20 @@ class Extension:
     OPUS = ".opus"
 
 class Hydration:
-    MEDIA_INDEX = 7
-    HYDRATABLE = "hydratable"
-    DATA = "data"
+    ANONYMOUS_ID = 0
+    FEATURES = 1
+    EXPERIMENTS = 2
+    GEOIP = 3
+    PRIVACY_SETTINGS = 4
+    TRACKING_BROWSER_TAB_ID = 5
+    USER = 6
+    MEDIA = 7
 
 class Hydratable:
     SINGLE_TRACK = "sound"
     ALBUM_OR_PLAYLIST = "playlist"
+    USER = "user"
+    USER_TRACKS = ("track", "track_repost")
 
 # Regular Expression Patterns
 class Regexp:

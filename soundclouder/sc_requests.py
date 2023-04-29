@@ -1,5 +1,6 @@
 import requests
 import json
+import time
 import re
 
 from soundclouder.sc_types import Regexp
@@ -74,6 +75,28 @@ class Requests(object):
         tracks = json.loads(self.decodeResponse(response))
         return tracks
     
+    def getTrackCollectionByUser(self, user):
+        """ Gets the tracks data dumping the whole user profile """
+        userid = user["id"]
+        #last_modified = user["last_modified"][:-1] + ".000Z" # `[:-1]` removes the last 'Z' literal
+
+        timestamp = f"0{int(time.time())}"
+        offset = "0" # ",".join((last_modified, "tracks", timestamp))
+
+        url = f"{self.api_url}stream/users/{userid}"
+        params = {
+            "client_id": self.client_id,
+            "limit": 80000,
+            "offset": offset,
+            "linked_partitioning": "1",
+            "app_version": "1682677411",
+            "app_locale": "en",
+        }
+        response = requests.get(url, params=params, headers=self.base_headers)
+        collection = json.loads(self.decodeResponse(response))["collection"]
+        return collection
+
+    
     def getChunkedResponse(self, url) -> requests.Response:
         """ GET Request for streaming data """
         response = requests.get(url, stream=True)
@@ -85,4 +108,3 @@ class Requests(object):
         response = requests.get(url)
         client_id = re.search(Regexp.CLIENTID, self.decodeResponse(response)).group(1)
         return client_id
-        

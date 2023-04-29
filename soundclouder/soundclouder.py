@@ -29,8 +29,12 @@ class SoundClouder:
     def __init__(self, url: str, base_path=Path.CURRENT_FOLDER, stream_type=Stream.MP3_HLS, replace_characters=False) -> None:
         self.req = Requests()
         self.hydration = self.req.getHydration(url)
-        self.hydratable = self.hydration[Hydration.MEDIA_INDEX]["hydratable"]
-        self.data = self.hydration[Hydration.MEDIA_INDEX]["data"]
+        if len(self.hydration) >= 8:
+            self.hydratable = self.hydration[Hydration.MEDIA]["hydratable"]
+            self.data = self.hydration[Hydration.MEDIA]["data"]
+        else:
+            self.hydratable = self.hydration[Hydration.USER]["hydratable"]
+            self.data = self.hydration[Hydration.USER]["data"]
         self.base_path = base_path # TODO: path validation
         self.stream_type = stream_type
         self.replace_characters = replace_characters
@@ -38,10 +42,12 @@ class SoundClouder:
         if self.hydratable == Hydratable.SINGLE_TRACK:
             self.downloadTrack(self.data, self.base_path)
         elif self.hydratable == Hydratable.ALBUM_OR_PLAYLIST:
-            self.downloadAlbumOrPlaylist()
+            self.downloadAlbumOrPlaylist(self.data, self.base_path)
+        elif self.hydratable == Hydratable.USER:
+            self.downloadUserProfile(self.data, self.base_path)
 
-    def createFolder(self, name: str) -> str:
-        path = os.path.join(self.base_path, name)
+    def createFolder(self, name: str, base_path: str) -> str:
+        path = os.path.join(base_path, name)
         if not os.path.exists(path):
             os.mkdir(path)
         return path
@@ -96,14 +102,14 @@ class SoundClouder:
 
         meta.writeMeta(filepath=path)
 
-    def downloadAlbumOrPlaylist(self) -> None:
+    def downloadAlbumOrPlaylist(self, data, base_path) -> None:
         """ Downloads all tracks from an album/playlist/set """
-        playlist_title = self.data["title"]
+        playlist_title = data["title"]
         if self.replace_characters:
-            playlist_path = self.createFolder(self.replaceReservedCharacters(playlist_title))
+            playlist_path = self.createFolder(self.replaceReservedCharacters(playlist_title), base_path)
         else:
-            playlist_path = self.createFolder(self.removeReservedCharacters(playlist_title))
-        ids_to_track_numbers = {track["id"]: track_number for track_number, track in enumerate(self.data["tracks"], start=1)}
+            playlist_path = self.createFolder(self.removeReservedCharacters(playlist_title), base_path)
+        ids_to_track_numbers = {track["id"]: track_number for track_number, track in enumerate(data["tracks"], start=1)}
         ids = list(map(str, ids_to_track_numbers.keys()))
         tracks = []
         offset = 50 # SoundCloud API `tracks` accepts only 50 ids per time
@@ -121,6 +127,23 @@ class SoundClouder:
 
         with multiprocessing.Pool() as pool:
             pool.starmap(self.downloadTrack, tasks)
+
+    def downloadUserProfile(self, data, base_path):
+        """ Downloads all tracks from an user profile """
+        username = data["username"]
+        if self.replace_characters:
+            user_path = self.createFolder(self.replaceReservedCharacters(username), base_path)
+        else:
+            user_path = self.createFolder(self.removeReservedCharacters(username), base_path)
+
+        collection = self.req.getTrackCollectionByUser(data)
+        for container in collection:
+            if container["type"] == Hydratable.ALBUM_OR_PLAYLIST:
+                playlist = container["playlist"]
+                self.downloadAlbumOrPlaylist(playlist, user_path) 
+            elif container["type"] in Hydratable.USER_TRACKS:
+                track = container["track"]
+                self.downloadTrack(track, user_path)
     
     def downloadArtwork(self, data: dict, size: tuple) -> bytes:
         """ Downloads an artwork/album cover of a track """
