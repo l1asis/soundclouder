@@ -14,7 +14,7 @@ class SoundClouder:
     """SoundClouder(url, base_path=".", stream_type=0, replace_characters=True) -> `None`
 
         Args:
-            url (url): link to the track/playlist/album/set on SoundCloud
+            url (url): link to the track/playlist/album/set/profile on SoundCloud
             base_path (base_path): path to the folder in which the media files will be saved
                 Default value: `"." - Current folder`
             stream_type (stream_type): type of the stream, affects the file format.
@@ -129,7 +129,7 @@ class SoundClouder:
             pool.starmap(self.downloadTrack, tasks)
 
     def downloadUserProfile(self, data, base_path):
-        """ Downloads all tracks from an user profile """
+        """ Downloads all tracks/albums/playlists/sets/reposts from an user profile """
         username = data["username"]
         if self.replace_characters:
             user_path = self.createFolder(self.replaceReservedCharacters(username), base_path)
