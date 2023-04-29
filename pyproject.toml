@@ -14,7 +14,8 @@ authors = [
 description = "Python library for downloading SoundCloud songs"
 readme = "README.md"
 requires-python = ">=3.10"
-keywords = ["soundcloud", "soundcloud-api", "playlists", "metadata", "mp3", "opus", "id3", "tags"]
+keywords = ["soundcloud", "soundcloud-api", "tracks", "playlists", "albums", 
+            "metadata", "mp3", "opus", "id3", "tags"]
 license = {file = "LICENSE"}
 classifiers = [
     "Programming Language :: Python :: 3",
