@@ -75,15 +75,18 @@ class Requests(object):
         tracks = json.loads(self.decodeResponse(response))
         return tracks
     
-    def getTrackCollectionByUser(self, user):
+    def getTrackCollectionByUser(self, user, is_likes):
         """ Gets the tracks data dumping the whole user profile """
         userid = user["id"]
         #last_modified = user["last_modified"][:-1] + ".000Z" # `[:-1]` removes the last 'Z' literal
-
-        timestamp = f"0{int(time.time())}"
+        #timestamp = f"0{int(time.time())}"
         offset = "0" # ",".join((last_modified, "tracks", timestamp))
 
-        url = f"{self.api_url}stream/users/{userid}"
+        if is_likes:
+            url = f"{self.api_url}users/{userid}/likes"
+        elif not is_likes:
+            url = f"{self.api_url}stream/users/{userid}"
+
         params = {
             "client_id": self.client_id,
             "limit": 80000,

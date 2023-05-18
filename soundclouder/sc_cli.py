@@ -16,7 +16,11 @@ def cli():
     # *NOT IMPLEMENTED*
     #parser.add_argument("-l", "--logging", dest="logging", action="store_true", default=False, help="Enable logging (default: disabled)")
     args = parser.parse_args()
-    SoundClouder(url=args.url, base_path=args.output, stream_type=args.stream_type, replace_characters=args.replace_characters)
+    try:
+        SoundClouder(url=args.url, base_path=args.output, stream_type=args.stream_type, replace_characters=args.replace_characters)
+    except KeyboardInterrupt:
+        print("\nInterrupted, quitting...")
+        exit(130)
 
 if __name__ == "__main__":
     import multiprocessing

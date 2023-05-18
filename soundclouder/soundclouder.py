@@ -35,6 +35,7 @@ class SoundClouder:
         else:
             self.hydratable = self.hydration[Hydration.USER]["hydratable"]
             self.data = self.hydration[Hydration.USER]["data"]
+            self.is_likes = True if url.endswith("likes") else False
         self.base_path = base_path # TODO: path validation
         self.stream_type = stream_type
         self.replace_characters = replace_characters
@@ -44,7 +45,7 @@ class SoundClouder:
         elif self.hydratable == Hydratable.ALBUM_OR_PLAYLIST:
             self.downloadAlbumOrPlaylist(self.data, self.base_path)
         elif self.hydratable == Hydratable.USER:
-            self.downloadUserProfile(self.data, self.base_path)
+            self.downloadUserProfile(self.data, self.base_path, self.is_likes)
 
     def createFolder(self, name: str, base_path: str) -> str:
         path = os.path.join(base_path, name)
@@ -128,7 +129,7 @@ class SoundClouder:
         with multiprocessing.Pool() as pool:
             pool.starmap(self.downloadTrack, tasks)
 
-    def downloadUserProfile(self, data, base_path):
+    def downloadUserProfile(self, data, base_path, is_likes):
         """ Downloads all tracks/albums/playlists/sets/reposts from an user profile """
         username = data["username"]
         if self.replace_characters:
@@ -136,12 +137,16 @@ class SoundClouder:
         else:
             user_path = self.createFolder(self.removeReservedCharacters(username), base_path)
 
-        collection = self.req.getTrackCollectionByUser(data)
+        if is_likes:
+            user_path = self.createFolder("likes", user_path)
+
+        collection = self.req.getTrackCollectionByUser(data, is_likes)
         for container in collection:
-            if container["type"] == Hydratable.ALBUM_OR_PLAYLIST:
+            container_type = container["type"] if not is_likes else container["kind"]
+            if container_type == Hydratable.ALBUM_OR_PLAYLIST:
                 playlist = container["playlist"]
                 self.downloadAlbumOrPlaylist(playlist, user_path) 
-            elif container["type"] in Hydratable.USER_TRACKS:
+            elif container_type in Hydratable.USER_TRACKS:
                 track = container["track"]
                 self.downloadTrack(track, user_path)
     

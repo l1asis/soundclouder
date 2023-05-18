@@ -55,7 +55,7 @@ class Hydratable:
     SINGLE_TRACK = "sound"
     ALBUM_OR_PLAYLIST = "playlist"
     USER = "user"
-    USER_TRACKS = ("track", "track_repost")
+    USER_TRACKS = ("track", "track_repost", "like")
 
 # Regular Expression Patterns
 class Regexp:
