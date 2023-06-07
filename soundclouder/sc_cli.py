@@ -1,4 +1,4 @@
-import argparse
+import sys, argparse
 
 def cli():
     """ Simple `argparse` command-line interface """
@@ -20,7 +20,7 @@ def cli():
         SoundClouder(url=args.url, base_path=args.output, stream_type=args.stream_type, replace_characters=args.replace_characters)
     except KeyboardInterrupt:
         print("\nInterrupted, quitting...")
-        exit(130)
+        sys.exit(130)
 
 if __name__ == "__main__":
     import multiprocessing

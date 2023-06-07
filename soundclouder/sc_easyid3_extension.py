@@ -1,9 +1,10 @@
+import sys
 import mutagen.id3
 
 from mutagen.easyid3 import EasyID3
 
 if __name__ == "__main__":
-    exit(0)
+    sys.exit(0)
 
 else:
     for key, frameid in {

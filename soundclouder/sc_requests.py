@@ -16,7 +16,6 @@ class Requests(object):
     """
     def __init__(self, user_agent="Mozilla/5.0 (Linux; x86)") -> None:
         self.api_url = "https://api-v2.soundcloud.com/"
-        self.cdn_url = "https://a-v2.sndcdn.com/"
         self.base_headers = {
             "Host": "api-v2.soundcloud.com",
             "User-Agent": user_agent,
@@ -31,7 +30,6 @@ class Requests(object):
             "Sec-Fetch-Mode": "cors",
             "Sec-Fetch-Site": "same-site",
         }
-        self.client_id = self.getClientID()
 
     def decodeResponse(self, response: requests.Response) -> str:
         """ Decodes `requests.Response` raw content using `utf-8` encoding to escape unicode-based problems """
@@ -41,6 +39,7 @@ class Requests(object):
         """ Gets the so-called JSON object `Hydration`, which contains all the necessary data for downloading media """
         response = requests.get(url)
         hydration = json.loads(re.findall(Regexp.HYDRATION, response.content.decode('utf-8'))[0])
+        self.client_id = self.getClientID(response)
         return hydration
 
     def getStreamURL(self, transcodings: dict, stream_type: int) -> str:
@@ -105,9 +104,9 @@ class Requests(object):
         response = requests.get(url, stream=True)
         return response
     
-    def getClientID(self) -> str:
+    def getClientID(self, response) -> str:
         """ GET Request for retrieving client_id parameter """
-        url = self.cdn_url + "assets/0-5fca5524.js"
-        response = requests.get(url)
-        client_id = re.search(Regexp.CLIENTID, self.decodeResponse(response)).group(1)
+        url = re.search(Regexp.CLIENTID_SCRIPT_URL, self.decodeResponse(response)).group(0)
+        script_response = requests.get(url)
+        client_id = re.search(Regexp.CLIENTID, self.decodeResponse(script_response)).group(1)
         return client_id

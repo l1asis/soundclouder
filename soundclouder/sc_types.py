@@ -65,6 +65,7 @@ class Regexp:
     M3U = re.compile(r"http.*")
     ARTWORK = re.compile(r"((?:artworks|avatars)-.*-)(.*)(\.jpg)")
     CLIENTID = re.compile(r"client_id:\"([A-za-z0-9]+)\"")
+    CLIENTID_SCRIPT_URL = re.compile(r"https://a-v2.sndcdn.com/assets/0-[A-za-z0-9]{8}.js")
 
 # Translation Tables for str.translate() method
 class Table:
