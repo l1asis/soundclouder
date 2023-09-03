@@ -76,6 +76,9 @@ class SoundClouder:
         """ Downloads a single track """
         artwork = self.downloadArtwork(data, (300,300))
         transcodings = data["media"]["transcodings"]
+        if not transcodings:
+            print(f"[-] Song \'{data['title']}\' is not available in your country or an error has occurred.")
+            return None
         mimetype = self.correctMIMEType(transcodings[self.stream_type]["format"]["mime_type"])
         extention = self.getExtension(mimetype)
         meta = Metadata(extention, artwork, data, playlist_title, track_number, total_track_number)

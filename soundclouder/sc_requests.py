@@ -35,7 +35,17 @@ class Requests(object):
         """ Decodes `requests.Response` raw content using `utf-8` encoding to escape unicode-based problems """
         return response.content.decode("utf-8")
 
-    def getHydration(self, url: str) -> list:
+    def dumpObject(self, obj) -> None:
+        """ Function for quickly storing JSON dictionaries or regular strings """
+        with open("./sc_dump", "wt") as file:
+            if isinstance(obj, dict) or isinstance(obj, list):
+                json.dump(obj, file, indent=" "*4)
+            elif isinstance(obj, requests.Response):
+                file.write(self.decodeResponse(obj))
+            elif isinstance(obj, str):
+                file.write(obj)
+
+    def getHydration(self, url: str) -> list[dict]:
         """ Gets the so-called JSON object `Hydration`, which contains all the necessary data for downloading media """
         response = requests.get(url)
         hydration = json.loads(re.findall(Regexp.HYDRATION, response.content.decode('utf-8'))[0])
@@ -53,7 +63,7 @@ class Requests(object):
         stream_response_url = json.loads(self.decodeResponse(stream_response))["url"]
         return stream_response_url
 
-    def getM3UPlaylistURLs(self, transcodings: dict, stream_type: int) -> dict:
+    def getM3UPlaylistURLs(self, transcodings: dict, stream_type: int) -> list[str]:
         """ Gets the M3U Playlist in case of HTTP Live Streaming (HLS) instead of Progressive download """
         stream_url = self.getStreamURL(transcodings, stream_type)
         m3u_playlist_response = requests.get(stream_url)
