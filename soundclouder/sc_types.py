@@ -1,4 +1,4 @@
-__all__ = ["Tag", "TagKey", "Path", "Stream", "MIME", "Extension", "Hydration", "Hydratable", "Regexp", "Table"]
+__all__ = ["Tag", "TagKey", "Path", "Stream", "MIME", "Extension", "Hydration", "Hydratable", "Regexp", "Table", "Internal"]
 
 import re
 
@@ -65,7 +65,7 @@ class Regexp:
     M3U = re.compile(r"http.*")
     ARTWORK = re.compile(r"((?:artworks|avatars)-.*-)(.*)(\.jpg)")
     CLIENTID = re.compile(r"client_id:\"([A-za-z0-9]+)\"")
-    CLIENTID_SCRIPT_URL = re.compile(r"https://a-v2.sndcdn.com/assets/0-[A-za-z0-9]{8}.js")
+    CLIENTID_SCRIPT_URL = re.compile(r"https:\/\/a-v2\.sndcdn\.com\/assets\/\d+-[A-za-z0-9]{8}\.js") # PREV: r"https://a-v2.sndcdn.com/assets/0-[A-za-z0-9]{8}.js"
 
 # Translation Tables for str.translate() method
 class Table:
@@ -80,3 +80,8 @@ class Table:
         63: 11822, # ?
         42: 10033, # *
     }
+
+class Internal:
+    DEFAULT = 0
+    LOG_ID = 1
+    CHECK_ID = 2

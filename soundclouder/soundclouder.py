@@ -1,14 +1,16 @@
-import re
-import os
-import multiprocessing
 import mimetypes
+import multiprocessing
+import os
+import re
+from urllib.parse import urlparse
 
 # EasyID3 Extension for APIC support
 import soundclouder.sc_easyid3_extension
 
-from soundclouder.sc_requests import Requests
 from soundclouder.sc_metadata import Metadata
+from soundclouder.sc_requests import Requests
 from soundclouder.sc_types import *
+
 
 class SoundClouder:
     """SoundClouder(url, base_path=".", stream_type=0, replace_characters=True) -> `None`
@@ -28,7 +30,7 @@ class SoundClouder:
     """
     def __init__(self, url: str, base_path=Path.CURRENT_FOLDER, stream_type=Stream.MP3_HLS, replace_characters=False) -> None:
         self.req = Requests()
-        self.hydration = self.req.getHydration(url)
+        self.hydration = self.req.getHydration(self.validateURL(url))
         if len(self.hydration) >= 8:
             self.hydratable = self.hydration[Hydration.MEDIA]["hydratable"]
             self.data = self.hydration[Hydration.MEDIA]["data"]
@@ -36,7 +38,7 @@ class SoundClouder:
             self.hydratable = self.hydration[Hydration.USER]["hydratable"]
             self.data = self.hydration[Hydration.USER]["data"]
             self.is_likes = True if url.endswith("likes") else False
-        self.base_path = base_path # TODO: path validation
+        self.base_path = base_path
         self.stream_type = stream_type
         self.replace_characters = replace_characters
 
@@ -46,7 +48,15 @@ class SoundClouder:
             self.downloadAlbumOrPlaylist(self.data, self.base_path)
         elif self.hydratable == Hydratable.USER:
             self.downloadUserProfile(self.data, self.base_path, self.is_likes)
+        self.req.closeSession()
 
+    def validateURL(self, url: str) -> str:
+        result = urlparse(url)
+        if result.scheme == "https" and result.netloc == "soundcloud.com":
+            result = result._replace(params="", query="")
+            return result.geturl()
+        raise Exception("[ERR] The specified URL is incorrect.")
+        
     def createFolder(self, name: str, base_path: str) -> str:
         path = os.path.join(base_path, name)
         if not os.path.exists(path):
@@ -72,8 +82,14 @@ class SoundClouder:
         extension = mimetypes.guess_extension(mimetype)
         return extension
 
-    def downloadTrack(self, data, base_path, playlist_title=None, track_number=1, total_track_number=1) -> None:
+    def downloadTrack(self, data, base_path, playlist_title=None, track_number=1, total_track_number=1, mode=(Internal.DEFAULT, None)) -> None:
         """ Downloads a single track """
+        if mode[0] == Internal.LOG_ID:
+            mode[1].append(data["id"])
+        elif mode[0] == Internal.CHECK_ID:
+            if data["id"] in mode[1]:
+                return
+
         artwork = self.downloadArtwork(data, (300,300))
         transcodings = data["media"]["transcodings"]
         if not transcodings:
@@ -106,7 +122,7 @@ class SoundClouder:
 
         meta.writeMeta(filepath=path)
 
-    def downloadAlbumOrPlaylist(self, data, base_path) -> None:
+    def downloadAlbumOrPlaylist(self, data, base_path, mode=(Internal.DEFAULT, None)) -> None:
         """ Downloads all tracks from an album/playlist/set """
         playlist_title = data["title"]
         if self.replace_characters:
@@ -126,7 +142,8 @@ class SoundClouder:
                   playlist_path, # setting the `base_path` as playlist_path
                   playlist_title, # setting playlist title for certain data in meta
                   ids_to_track_numbers[track["id"]], # number of track in album/set/playlist
-                  total_track_number] # total track number in album/set/playlist
+                  total_track_number, # total track number in album/set/playlist
+                  mode] # decide whether to log track IDs
                   for track in tracks] # iterate through the list of all tracks
 
         with multiprocessing.Pool() as pool:
@@ -142,16 +159,22 @@ class SoundClouder:
 
         if is_likes:
             user_path = self.createFolder("likes", user_path)
-
-        collection = self.req.getTrackCollectionByUser(data, is_likes)
-        for container in collection:
-            container_type = container["type"] if not is_likes else container["kind"]
-            if container_type == Hydratable.ALBUM_OR_PLAYLIST:
-                playlist = container["playlist"]
-                self.downloadAlbumOrPlaylist(playlist, user_path) 
-            elif container_type in Hydratable.USER_TRACKS:
-                track = container["track"]
-                self.downloadTrack(track, user_path)
+        
+        with multiprocessing.Manager() as manager:
+            tracker = manager.list()
+            single_tracks = []
+            collection = self.req.getTrackCollectionByUser(data, is_likes)
+            for container in collection:
+                container_type = container["type"] if not is_likes else container["kind"]
+                if container_type == Hydratable.ALBUM_OR_PLAYLIST:
+                    playlist = container["playlist"]
+                    self.downloadAlbumOrPlaylist(playlist, user_path, (Internal.LOG_ID, tracker))
+                elif container_type in Hydratable.USER_TRACKS:
+                    track = container["track"]
+                    single_tracks.append(track)
+            with multiprocessing.Pool() as pool:
+                tasks = [[track, user_path, None, 1, 1, (Internal.CHECK_ID, tracker)] for track in single_tracks]
+                pool.starmap(self.downloadTrack, tasks)
     
     def downloadArtwork(self, data: dict, size: tuple) -> bytes:
         """ Downloads an artwork/album cover of a track """
